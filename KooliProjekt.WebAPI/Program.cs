@@ -1,6 +1,7 @@
 using FluentValidation;
 using KooliProjekt.Application.Behaviors;
 using KooliProjekt.Application.Data;
+using KooliProjekt.Application.Data.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -39,6 +40,13 @@ namespace KooliProjekt.WebAPI
                 config.AddOpenBehavior(typeof(TransactionalBehavior<,>));
             });
 
+            // 28.11
+            // Registreeri repository klassid
+            builder.Services.AddScoped<ITasksRepository, TasksRepository>();
+            builder.Services.AddScoped<IEmployeesRepository, EmployeesRepository>();
+            builder.Services.AddScoped<IProjectMembersRepository, ProjectMembersRepository>();
+            builder.Services.AddScoped<IProjectsRepository, ProjectsRepository>();
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -49,9 +57,23 @@ namespace KooliProjekt.WebAPI
             }
 
             app.UseAuthorization();
-
-
             app.MapControllers();
+
+            // 15.11.2025
+            // Loo andmebaas kui seda pole, lisa puuduvad migratsioonid
+            // ja genereeri andmed
+            using (var scope = app.Services.CreateScope())
+            using (var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>())
+            {                   
+                dbContext.Database.Migrate();
+
+                // Preprotsessori direktiiv, mis tagab, et andmete genereerimine
+                // toimub ainult arendusrežiimis
+#if DEBUG
+                var generator = new SeedData(dbContext);
+                generator.Generate();
+#endif
+            }
 
             app.Run();
         }
