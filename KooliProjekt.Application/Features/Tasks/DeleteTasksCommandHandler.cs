@@ -17,17 +17,22 @@ namespace KooliProjekt.Application.Features.Tasks
 
         public DeleteTasksCommandHandler(ApplicationDbContext dbContext)
         {
-            _dbContext = dbContext;
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
         public async Task<OperationResult> Handle(DeleteTasksCommand request, CancellationToken cancellationToken)
         {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
             var result = new OperationResult();
 
-            await _dbContext
-                .Tasks
-                .Where(t => t.Id == request.Id)
-                .ExecuteDeleteAsync();
+            var task = await _dbContext.Tasks.FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
+            if (task != null)
+            {
+                _dbContext.Tasks.Remove(task);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
 
             return result;
         }

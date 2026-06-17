@@ -1,36 +1,40 @@
+using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KooliProjekt.Application.Data;
-using KooliProjekt.Application.Data.Repositories;
 using KooliProjekt.Application.Infrastructure.Results;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace KooliProjekt.Application.Features.Projects
 {
     public class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, OperationResult<object>>
     {
-        private readonly IProjectsRepository _projectsRepository;
+        private readonly ApplicationDbContext _dbContext;
 
-        public GetProjectsQueryHandler(IProjectsRepository projectsRepository)
+        public GetProjectsQueryHandler(ApplicationDbContext dbContext)
         {
-            _projectsRepository = projectsRepository;
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
         public async Task<OperationResult<object>> Handle(GetProjectsQuery request, CancellationToken cancellationToken)
         {
-            var result = new OperationResult<object>();
-            var project = await _projectsRepository.GetByIdAsync(request.Id);
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
 
-            result.Value = new
-            {
-                Id = project.Id,
-                Name = project.Name,
-                Description = project.Description,
-                StartDate = project.StartDate,
-                EndDate = project.EndDate,
-                Status = project.Status,
-                Budget = project.Budget
-            };
+            var result = new OperationResult<object>();
+
+            result.Value = await _dbContext
+                .Projects
+                .Where(project => project.Id == request.Id)
+                .Select(list => new
+                {
+                    Id = list.Id,
+                    Name = list.Name,
+                    Status = list.Status,
+                })
+                .FirstOrDefaultAsync();
 
             return result;
         }

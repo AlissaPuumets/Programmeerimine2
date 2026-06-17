@@ -25,6 +25,14 @@ namespace KooliProjekt.Application.UnitTests
             }
         }
 
+        protected ApplicationDbContext GetFaultyDbContext()
+        {
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .Options;
+            return new ApplicationDbContext(options);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -43,5 +51,9 @@ namespace KooliProjekt.Application.UnitTests
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+    }
+
+    public abstract class TestBase : ServiceTestBase
+    {
     }
 }

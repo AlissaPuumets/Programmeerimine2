@@ -9,5 +9,7 @@ namespace KooliProjekt.Application.Features.Projects
     {
         public int Page { get; set; }
         public int PageSize { get; set; }
+        public string SearchName { get; set; }
+        public string SearchStatus { get; set; }
     }
 }

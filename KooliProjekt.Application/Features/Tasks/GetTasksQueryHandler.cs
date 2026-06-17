@@ -1,8 +1,8 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KooliProjekt.Application.Data;
-using KooliProjekt.Application.Data.Repositories;
 using KooliProjekt.Application.Infrastructure.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -11,24 +11,29 @@ namespace KooliProjekt.Application.Features.Tasks
 {
     public class GetTasksQueryHandler : IRequestHandler<GetTasksQuery, OperationResult<object>>
     {
-        private readonly ITasksRepository _tasksRepository;
+        private readonly ApplicationDbContext _dbContext;
 
-        public GetTasksQueryHandler(ITasksRepository tasksRepository)
+        public GetTasksQueryHandler(ApplicationDbContext dbContext)
         {
-            _tasksRepository = tasksRepository;
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
         public async Task<OperationResult<object>> Handle(GetTasksQuery request, CancellationToken cancellationToken)
         {
-            var result = new OperationResult<object>();
-            var list = await _tasksRepository.GetByIdAsync(request.Id);
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
 
-            result.Value = new
-            {
-                Id = list.Id,
-                Title = list.Title,
-                Items = list.Id
-                };
+            var result = new OperationResult<object>();
+
+            result.Value = await _dbContext
+                .Tasks
+                .Where(task => task.Id == request.Id)
+                .Select(list => new
+                {
+                    Id = list.Id,
+                    Title = list.Title,
+                })
+                .FirstOrDefaultAsync();
 
             return result;
         }

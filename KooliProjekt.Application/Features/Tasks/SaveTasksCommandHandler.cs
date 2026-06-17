@@ -1,34 +1,51 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
-using KooliProjekt.Application.Data;
-using KooliProjekt.Application.Data.Repositories;
+﻿using KooliProjekt.Application.Data;
 using KooliProjekt.Application.Infrastructure.Results;
 using MediatR;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace KooliProjekt.Application.Features.Tasks
 {
     public class SaveTasksCommandHandler : IRequestHandler<SaveTasksCommand, OperationResult>
     {
-        private readonly ITasksRepository _tasksRepository;
+        private readonly ApplicationDbContext _dbContext;
 
-        public SaveTasksCommandHandler(ITasksRepository tasksRepository)
+        public SaveTasksCommandHandler(ApplicationDbContext dbContext)
         {
-            _tasksRepository = tasksRepository;
+            _dbContext = dbContext;
         }
 
         public async Task<OperationResult> Handle(SaveTasksCommand request, CancellationToken cancellationToken)
         {
             var result = new OperationResult();
 
-            var list = new Data.Task();
-            if(request.Id != 0)
+            Data.Task task;
+            if (request.Id == 0)
             {
-                list = await _tasksRepository.GetByIdAsync(request.Id);
+                task = new Data.Task();
+                await _dbContext.Tasks.AddAsync(task, cancellationToken);
+            }
+            else
+            {
+                task = await _dbContext.Tasks.FindAsync(new object[] { request.Id }, cancellationToken);
+                if (task == null)
+                {
+                    result.AddError("Task not found");
+                    return result;
+                }
             }
 
-            list.Title = request.Title;
+            task.ProjectId = request.ProjectId;
+            task.Title = request.Title;
+            task.Description = request.Description;
+            task.AssignedTo = request.AssignedTo;
+            task.Status = request.Status;
+            task.StartDate = request.StartDate;
+            task.EndDate = request.EndDate;
+            task.Priority = request.Priority;
 
-            await _tasksRepository.SaveAsync(list);
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
             return result;
         }

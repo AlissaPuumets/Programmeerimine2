@@ -1,35 +1,40 @@
+using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KooliProjekt.Application.Data;
-using KooliProjekt.Application.Data.Repositories;
 using KooliProjekt.Application.Infrastructure.Results;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace KooliProjekt.Application.Features.Employees
 {
     public class GetEmployeesQueryHandler : IRequestHandler<GetEmployeesQuery, OperationResult<object>>
     {
-        private readonly IEmployeesRepository _employeesRepository;
+        private readonly ApplicationDbContext _dbContext;
 
-        public GetEmployeesQueryHandler(IEmployeesRepository employeesRepository)
+        public GetEmployeesQueryHandler(ApplicationDbContext dbContext)
         {
-            _employeesRepository = employeesRepository;
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
         public async Task<OperationResult<object>> Handle(GetEmployeesQuery request, CancellationToken cancellationToken)
         {
-            var result = new OperationResult<object>();
-            var employee = await _employeesRepository.GetByIdAsync(request.Id);
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
 
-            result.Value = new
-            {
-                Id = employee.Id,
-                FirstName = employee.FirstName,
-                LastName = employee.LastName,
-                Email = employee.Email,
-                Phone = employee.Phone,
-                Role = employee.Role
-            };
+            var result = new OperationResult<object>();
+
+            result.Value = await _dbContext
+                .Employees
+                .Where(employee => employee.Id == request.Id)
+                .Select(list => new
+                {
+                    Id = list.Id,
+                    FirstName = list.FirstName,
+                    LastName = list.LastName,
+                })
+                .FirstOrDefaultAsync();
 
             return result;
         }

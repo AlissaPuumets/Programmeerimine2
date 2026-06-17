@@ -1,29 +1,39 @@
-using System.Threading;
-using System.Threading.Tasks;
 using KooliProjekt.Application.Data;
-using KooliProjekt.Application.Data.Repositories;
 using KooliProjekt.Application.Infrastructure.Results;
 using MediatR;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace KooliProjekt.Application.Features.Projects
 {
     public class SaveProjectsCommandHandler : IRequestHandler<SaveProjectsCommand, OperationResult>
     {
-        private readonly IProjectsRepository _projectsRepository;
+        private readonly ApplicationDbContext _dbContext;
 
-        public SaveProjectsCommandHandler(IProjectsRepository projectsRepository)
+        public SaveProjectsCommandHandler(ApplicationDbContext dbContext)
         {
-            _projectsRepository = projectsRepository;
+            _dbContext = dbContext;
         }
 
         public async Task<OperationResult> Handle(SaveProjectsCommand request, CancellationToken cancellationToken)
         {
             var result = new OperationResult();
 
-            var project = new Project();
-            if(request.Id != 0)
+            Project project;
+            if (request.Id == 0)
             {
-                project = await _projectsRepository.GetByIdAsync(request.Id);
+                project = new Project();
+                await _dbContext.Projects.AddAsync(project, cancellationToken);
+            }
+            else
+            {
+                project = await _dbContext.Projects.FindAsync(new object[] { request.Id }, cancellationToken);
+                if (project == null)
+                {
+                    result.AddError("Project not found");
+                    return result;
+                }
             }
 
             project.Name = request.Name;
@@ -33,7 +43,7 @@ namespace KooliProjekt.Application.Features.Projects
             project.Status = request.Status;
             project.Budget = request.Budget;
 
-            await _projectsRepository.SaveAsync(project);
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
             return result;
         }

@@ -8,8 +8,6 @@ namespace KooliProjekt.Application.Data
     public class Task : Entity
     {
         [Required]
-        public int Id { get; set; }
-        [Required]
         public int ProjectId { get; set; }
         [Required]
         [MaxLength(50)]

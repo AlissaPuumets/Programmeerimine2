@@ -1,36 +1,46 @@
-using System.Threading;
-using System.Threading.Tasks;
 using KooliProjekt.Application.Data;
-using KooliProjekt.Application.Data.Repositories;
 using KooliProjekt.Application.Infrastructure.Results;
 using MediatR;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace KooliProjekt.Application.Features.ProjectMembers
 {
     public class SaveProjectMembersCommandHandler : IRequestHandler<SaveProjectMembersCommand, OperationResult>
     {
-        private readonly IProjectMembersRepository _projectMembersRepository;
+        private readonly ApplicationDbContext _dbContext;
 
-        public SaveProjectMembersCommandHandler(IProjectMembersRepository projectMembersRepository)
+        public SaveProjectMembersCommandHandler(ApplicationDbContext dbContext)
         {
-            _projectMembersRepository = projectMembersRepository;
+            _dbContext = dbContext;
         }
 
         public async Task<OperationResult> Handle(SaveProjectMembersCommand request, CancellationToken cancellationToken)
         {
             var result = new OperationResult();
 
-            var projectMember = new ProjectMember();
-            if(request.Id != 0)
+            ProjectMember projectMember;
+            if (request.Id == 0)
             {
-                projectMember = await _projectMembersRepository.GetByIdAsync(request.Id);
+                projectMember = new ProjectMember();
+                await _dbContext.ProjectMembers.AddAsync(projectMember, cancellationToken);
+            }
+            else
+            {
+                projectMember = await _dbContext.ProjectMembers.FindAsync(new object[] { request.Id }, cancellationToken);
+                if (projectMember == null)
+                {
+                    result.AddError("Project member not found");
+                    return result;
+                }
             }
 
             projectMember.ProjectId = request.ProjectId;
             projectMember.EmployeeId = request.EmployeeId;
             projectMember.RoleInProject = request.RoleInProject;
 
-            await _projectMembersRepository.SaveAsync(projectMember);
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
             return result;
         }

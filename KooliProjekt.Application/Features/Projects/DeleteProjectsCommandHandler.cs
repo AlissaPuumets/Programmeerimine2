@@ -17,17 +17,22 @@ namespace KooliProjekt.Application.Features.Projects
 
         public DeleteProjectsCommandHandler(ApplicationDbContext dbContext)
         {
-            _dbContext = dbContext;
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
         public async Task<OperationResult> Handle(DeleteProjectsCommand request, CancellationToken cancellationToken)
         {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
             var result = new OperationResult();
 
-            await _dbContext
-                .Projects
-                .Where(p => p.Id == request.Id)
-                .ExecuteDeleteAsync();
+            var project = await _dbContext.Projects.FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+            if (project != null)
+            {
+                _dbContext.Projects.Remove(project);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
 
             return result;
         }

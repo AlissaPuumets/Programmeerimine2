@@ -9,5 +9,8 @@ namespace KooliProjekt.Application.Features.ProjectMembers
     {
         public int Page { get; set; }
         public int PageSize { get; set; }
+        public int? SearchProjectId { get; set; }
+        public int? SearchEmployeeId { get; set; }
+        public string SearchRoleInProject { get; set; }
     }
 }

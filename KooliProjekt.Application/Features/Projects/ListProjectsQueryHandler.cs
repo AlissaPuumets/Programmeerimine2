@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -16,15 +17,36 @@ namespace KooliProjekt.Application.Features.Projects
 
         public ListProjectsQueryHandler(ApplicationDbContext dbContext)
         {
-            _dbContext = dbContext;
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
         public async Task<OperationResult<PagedResult<Project>>> Handle(ListProjectsQuery request, CancellationToken cancellationToken)
         {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
             var result = new OperationResult<PagedResult<Project>>();
 
-            result.Value = await _dbContext
-                .Projects
+            if (request.Page <= 0 || request.PageSize <= 0)
+            {
+                result.Value = null;
+                return result;
+            }
+
+            var query = _dbContext.Projects.AsQueryable();
+
+            // Apply search filters
+            if (!string.IsNullOrWhiteSpace(request.SearchName))
+            {
+                query = query.Where(p => p.Name.Contains(request.SearchName));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.SearchStatus))
+            {
+                query = query.Where(p => p.Status.Contains(request.SearchStatus));
+            }
+
+            result.Value = await query
                 .OrderBy(p => p.Id)
                 .GetPagedAsync(request.Page, request.PageSize);
 

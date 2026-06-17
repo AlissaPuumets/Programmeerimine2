@@ -9,5 +9,8 @@ namespace KooliProjekt.Application.Features.Employees
     {
         public int Page { get; set; }
         public int PageSize { get; set; }
+        public string SearchFirstName { get; set; }
+        public string SearchLastName { get; set; }
+        public string SearchEmail { get; set; }
     }
 }

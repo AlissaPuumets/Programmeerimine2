@@ -1,0 +1,18 @@
+﻿using System.Windows;
+
+namespace KooliProjekt.WpfApplication
+{
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : Window
+    {
+        public MainWindow()
+        {
+            InitializeComponent();
+            var viewModel = new MainWindowViewModel();
+            DataContext = viewModel;
+            Loaded += (s, e) => viewModel.LoadCommand.Execute(null);
+        }
+    }
+}

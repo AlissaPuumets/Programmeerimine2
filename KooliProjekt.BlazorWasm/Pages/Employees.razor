@@ -1,0 +1,77 @@
+@page "/lists"
+@inject IApiClient apiClient
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Employees</PageTitle>
+
+<h1>Employees</h1>
+
+@if (employees == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <p><a class="btn btn-primary" href="/create">Add new</a></p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Role</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var employee in employees)
+            {
+                <tr>
+                    <td>@employee.Id</td>
+                    <td>@employee.FirstName</td>
+                    <td>@employee.LastName</td>
+                    <td>@employee.Email</td>
+                    <td>@employee.Phone</td>
+                    <td>@employee.Role</td>
+                    <td>
+                        <a class="btn btn-success" href="/edit/@employee.Id">Edit</a>
+                        <button class="btn btn-danger" @onclick="() => DeleteEmployee(employee)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IList<Employee> employees;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var result = await apiClient.List(1, 100);
+        if (!result.HasErrors)
+        {
+            employees = result.Value.Results;
+        }
+    }
+
+    private async Task DeleteEmployee(Employee employee)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {employee.FirstName} {employee.LastName}?");
+        if (confirmed)
+        {
+            var result = await apiClient.Delete(employee.Id);
+            if (!result.HasErrors)
+            {
+                await LoadData();
+            }
+        }
+    }
+}
